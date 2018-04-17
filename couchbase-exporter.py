@@ -17,8 +17,8 @@ class CouchbaseCollector(object):
     
     def format_metric(self, stat, prefix=None, component=None):
         formatted_stat_first = self._first_cap_re.sub(r'\1_\2', stat)
-        formatted_stat = self._all_cap_re.sub(r'\1_\2', formatted_stat_first).lower() 
-
+        formatted_stat = self._all_cap_re.sub(r'\1_\2', formatted_stat_first).lower().replace("+", "_") 
+        
         prefix = "%s_" % prefix if prefix is not None else ""
         component = "%s_" % component if component is not None else ""
 
@@ -45,18 +45,16 @@ class BucketCollector(CouchbaseCollector):
             stats_collection = {}
 
             for stat, values in response.items():
-                stats_collection[stat] = sum(values) / len(values)
+                stats_collection[self.format_metric(stat, "cb", "bucket")] = sum(values) / len(values)
             
             stats_collections[bucket] = stats_collection
 
         for stat, value in stats_collections[buckets[0]].items():
-            metric_name = self.format_metric(stat, "cb", "bucket")
-
-            metric = Metric(metric_name, "", "gauge")
+            metric = Metric(stat, "", "gauge")
 
             for name, stats_collection in stats_collections.items():
                 metric.add_sample(
-                    metric_name,
+                    stat,
                     value=stats_collection[stat],
                     labels={"bucket": name}
                 )
