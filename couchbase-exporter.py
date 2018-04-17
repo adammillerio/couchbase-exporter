@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from prometheus_client import start_http_server, Metric, REGISTRY
 from argparse import ArgumentParser
 from os import environ
