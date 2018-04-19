@@ -117,6 +117,152 @@ class NodeCollector(CouchbaseCollector):
             
             yield metric
 
+        # Derived node metrics
+        derived = {}
+        derived["cb_node_status_healthy"] = Metric("cb_node_status_healthy", "How many nodes are healthy", "gauge")
+        derived["cb_node_status_unhealthy"] = Metric("cb_node_status_unhealthy", "How many nodes are unhealthy", "gauge")
+        derived["cb_node_status_warmup"] = Metric("cb_node_status_warmup", "How many nodes are warming up", "gauge")
+        derived["cb_node_membership_active"] = Metric("cb_node_membership_active", "How many nodes are active and taking traffic", "gauge")
+        derived["cb_node_membership_inactive_added"] = Metric("cb_node_membership_inactive_added", "How many nodes are NOT active and pending rebalance", "gauge")
+        derived["cb_node_membership_inactive_failed"] = Metric("cb_node_membership_inactive_failed", "How many nodes are NOT active and failed over", "gauge")
+        derived["cb_node_uptime"] = Metric("cb_node_uptime", "Uptime of the node", "counter")
+        derived["cb_node_info"] = Metric("cb_node_info", "Information about the node", "gauge")
+        derived["cb_service_enabled"] = Metric("cb_service_enabled", "Whether or not a service is enabled", "gauge")
+    
+        for node in stats["nodes"]:
+            derived["cb_node_status_healthy"].add_sample(
+                "cb_node_status_healthy",
+                value=(node["status"] == "healthy"),
+                labels={"node": node["hostname"]}
+            )
+
+            derived["cb_node_status_unhealthy"].add_sample(
+                "cb_node_status_unhealthy",
+                value=(node["status"] == "unhealthy"),
+                labels={"node": node["hostname"]}
+            )
+
+            derived["cb_node_status_warmup"].add_sample(
+                "cb_node_status_warmup",
+                value=(node["status"] == "warmup"),
+                labels={"node": node["hostname"]}
+            )
+
+            derived["cb_node_membership_active"].add_sample(
+                "cb_node_membership_active",
+                value=(node["clusterMembership"] == "active"),
+                labels={"node": node["hostname"]}
+            )
+            
+            derived["cb_node_membership_inactive_added"].add_sample(
+                "cb_node_membership_inactive_added",
+                value=(node["clusterMembership"] == "inactiveAdded"),
+                labels={"node": node["hostname"]}
+            )
+
+            derived["cb_node_membership_inactive_failed"].add_sample(
+                "cb_node_membership_inactive_failed",
+                value=(node["clusterMembership"] == "inactiveFailed"),
+                labels={"node": node["hostname"]}
+            )
+
+            derived["cb_node_uptime"].add_sample(
+                "cb_node_uptime",
+                value=float(node["uptime"]),
+                labels={"node": node["hostname"]}
+            )
+
+            derived["cb_node_info"].add_sample(
+                "cb_node_info",
+                value=0.0,
+                labels={
+                    "node": node["hostname"],
+                    "cluster_compatability": str(node["clusterCompatibility"]),
+                    "version": node["version"],
+                    "os": node["os"]
+                }
+            )
+
+            derived["cb_service_enabled"].add_sample(
+                "cb_service_enabled",
+                value=("fts" in node["services"]),
+                labels={
+                    "node": node["hostname"],
+                    "service": "fts"
+                }
+            )
+
+            derived["cb_service_enabled"].add_sample(
+                "cb_service_enabled",
+                value=("index" in node["services"]),
+                labels={
+                    "node": node["hostname"],
+                    "service": "index"
+                }
+            )
+
+            derived["cb_service_enabled"].add_sample(
+                "cb_service_enabled",
+                value=("kv" in node["services"]),
+                labels={
+                    "node": node["hostname"],
+                    "service": "kv"
+                }
+            )
+
+            derived["cb_service_enabled"].add_sample(
+                "cb_service_enabled",
+                value=("n1ql" in node["services"]),
+                labels={
+                    "node": node["hostname"],
+                    "service": "n1ql"
+                }
+            )
+
+        for name, metric in derived.items():
+            yield metric
+        
+        # Derived cluster metrics
+        metric = Metric("cb_rebalance_running", "Whether or not a cluster rebalance is happening", "gauge")
+        metric.add_sample(
+            "cb_rebalance_running",
+            value=(0.0 if stats["rebalanceStatus"] == "none" else 1.0),
+            labels={}
+        )
+        yield metric
+
+        metric = Metric("cb_rebalance_start_total", "How many rebalances have started", "counter")
+        metric.add_sample(
+            "cb_rebalance_start_total",
+            value=stats["counters"]["rebalance_start"],
+            labels={}
+        )
+        yield metric
+        
+        metric = Metric("cb_rebalance_success_total", "How many rebalances have succeeded", "counter")
+        metric.add_sample(
+            "cb_rebalance_success_total",
+            value=stats["counters"]["rebalance_success"],
+            labels={}
+        )
+        yield metric
+
+        metric = Metric("cb_failover_node_total", "How many node failovers have occurred", "counter")
+        metric.add_sample(
+            "cb_failover_node_total",
+            value=stats["counters"]["failover_node"],
+            labels={}
+        )
+        yield metric
+
+        metric = Metric("cb_balanced", "Whether or not the cluster is balanced", "gauge")
+        metric.add_sample(
+            "cb_balanced",
+            value=float(stats["balanced"]),
+            labels={}
+        )
+        yield metric
+
 if __name__ == "__main__":
     parser = ArgumentParser()
 
