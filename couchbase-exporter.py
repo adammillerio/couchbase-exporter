@@ -231,29 +231,32 @@ class NodeCollector(CouchbaseCollector):
         )
         yield metric
 
-        metric = Metric("cb_rebalance_start_total", "How many rebalances have started", "counter")
-        metric.add_sample(
-            "cb_rebalance_start_total",
-            value=stats["counters"]["rebalance_start"],
-            labels={}
-        )
-        yield metric
+        if "rebalance_start" in stats["counters"]:
+            metric = Metric("cb_rebalance_start_total", "How many rebalances have started", "counter")
+            metric.add_sample(
+                "cb_rebalance_start_total",
+                value=stats["counters"]["rebalance_start"],
+                labels={}
+            )
+            yield metric
         
-        metric = Metric("cb_rebalance_success_total", "How many rebalances have succeeded", "counter")
-        metric.add_sample(
-            "cb_rebalance_success_total",
-            value=stats["counters"]["rebalance_success"],
-            labels={}
-        )
-        yield metric
+        if "rebalance_success" in stats["counters"]:
+            metric = Metric("cb_rebalance_success_total", "How many rebalances have succeeded", "counter")
+            metric.add_sample(
+                "cb_rebalance_success_total",
+                value=stats["counters"]["rebalance_success"],
+                labels={}
+            )
+            yield metric
 
-        metric = Metric("cb_failover_node_total", "How many node failovers have occurred", "counter")
-        metric.add_sample(
-            "cb_failover_node_total",
-            value=stats["counters"]["failover_node"],
-            labels={}
-        )
-        yield metric
+        if "failover_node" in stats["counters"]:
+            metric = Metric("cb_failover_node_total", "How many node failovers have occurred", "counter")
+            metric.add_sample(
+                "cb_failover_node_total",
+                value=stats["counters"]["failover_node"],
+                labels={}
+            )
+            yield metric
 
         metric = Metric("cb_balanced", "Whether or not the cluster is balanced", "gauge")
         metric.add_sample(
